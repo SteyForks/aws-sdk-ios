@@ -241,6 +241,12 @@ static NSDictionary *errorCodeDictionary = nil;
                                                                                outputClass:outputClass];
     networkingRequest.requestSerializer = [AWSXMLRequestSerializer serializerWithResource:AWSS3APIVersion
                                                                                actionName:operationName];
+    
+    if (request.contentType.length > 0) {
+        NSMutableDictionary *headers = [NSMutableDictionary dictionaryWithDictionary:networkingRequest.headers];
+        [headers setObject:request.contentType forKey:@"Content-Type"];
+        networkingRequest.headers = [NSDictionary dictionaryWithDictionary:headers];
+    }
 
     return [self.networking sendRequest:networkingRequest];
 }
@@ -257,6 +263,7 @@ static NSDictionary *errorCodeDictionary = nil;
 }
 
 - (BFTask *)completeMultipartUpload:(AWSS3CompleteMultipartUploadRequest *)request {
+    request.contentType = @"text/xml";
     return [self invokeRequest:request
                     HTTPMethod:AWSHTTPMethodPOST
                      URLString:@"/{Bucket}/{Key+}"

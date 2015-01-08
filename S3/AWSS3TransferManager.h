@@ -110,6 +110,9 @@ typedef void (^AWSS3TransferManagerResumeAllBlock) (AWSRequest *request);
  */
 - (BFTask *)clearCache;
 
+@property (nonatomic, assign) NSUInteger minimumPartSize;
+@property (nonatomic, assign) NSUInteger byteLimitDefault;
+
 @end
 
 @interface AWSS3TransferManagerUploadRequest : AWSS3PutObjectRequest

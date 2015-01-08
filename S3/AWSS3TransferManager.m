@@ -20,10 +20,11 @@
 #import "AWSCategory.h"
 #import "AWSLogging.h"
 
-NSUInteger const AWSS3TransferManagerMinimumPartSize = 5 * 1024 * 1024; // 5MB
+NSUInteger const _AWSS3TransferManagerMinimumPartSize = 5 * 1024 * 1024; // 5MB
 NSString *const AWSS3TransferManagerCacheName = @"com.amazonaws.AWSS3TransferManager.CacheName";
 NSString *const AWSS3TransferManagerErrorDomain = @"com.amazonaws.AWSS3TransferManagerErrorDomain";
-NSUInteger const AWSS3TransferManagerByteLimitDefault = 5 * 1024 * 1024; // 5MB
+NSUInteger const _AWSS3TransferManagerByteLimitDefault = 5 * 1024 * 1024; // 5MB
+NSInteger _AWSS3TransferManagerMinimumPartSizeMutable = _AWSS3TransferManagerMinimumPartSize;
 NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the data indefinitely unless it hits the size limit.
 
 @interface AWSS3TransferManager()
@@ -84,10 +85,25 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
         _s3 = [[AWSS3 alloc] initWithConfiguration:configuration];
         _cache = [[TMCache alloc] initWithName:cacheName
                                       rootPath:[NSTemporaryDirectory() stringByAppendingPathComponent:AWSS3TransferManagerCacheName]];
-        _cache.diskCache.byteLimit = AWSS3TransferManagerByteLimitDefault;
+        _cache.diskCache.byteLimit = _AWSS3TransferManagerByteLimitDefault;
         _cache.diskCache.ageLimit = AWSS3TransferManagerAgeLimitDefault;
+        
+        self.minimumPartSize = _AWSS3TransferManagerMinimumPartSize;
+        self.byteLimitDefault = _AWSS3TransferManagerByteLimitDefault;
     }
     return self;
+}
+
+- (void)setByteLimitDefault:(NSUInteger)byteLimitDefault
+{
+    _byteLimitDefault = byteLimitDefault;
+    _cache.diskCache.byteLimit = _byteLimitDefault;
+}
+
+- (void)setMinimumPartSize:(NSUInteger)minimumPartSize
+{
+    _minimumPartSize = minimumPartSize;
+    _AWSS3TransferManagerMinimumPartSizeMutable = _minimumPartSize;
 }
 
 - (BFTask *)upload:(AWSS3TransferManagerUploadRequest *)uploadRequest {
@@ -149,7 +165,7 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
                        forKey:cacheKey];
         return nil;
     }] continueWithSuccessBlock:^id(BFTask *task) {
-        if (fileSize > AWSS3TransferManagerMinimumPartSize) {
+        if (fileSize > self.minimumPartSize) {
             return [self multipartUpload:uploadRequest fileSize:fileSize cacheKey:cacheKey];
         } else {
             return [self putObject:uploadRequest fileSize:fileSize cacheKey:cacheKey];
@@ -212,7 +228,7 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
 - (BFTask *)multipartUpload:(AWSS3TransferManagerUploadRequest *)uploadRequest
                    fileSize:(unsigned long long) fileSize
                    cacheKey:(NSString *)cacheKey {
-    NSUInteger partCount = ceil((double)fileSize / AWSS3TransferManagerMinimumPartSize);
+    NSUInteger partCount = ceil((double)fileSize / self.minimumPartSize);
     
     BFTask *initRequest = nil;
     
@@ -270,10 +286,10 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
                 //if task can be contiuned, set the count, save the current partCount number
                 [uploadRequest setValue:[NSNumber numberWithInteger:i] forKey:@"currentUploadingPartNumber"];
                 
-                NSUInteger dataLength = i == partCount ? (NSUInteger)fileSize - ((i - 1) * AWSS3TransferManagerMinimumPartSize) : AWSS3TransferManagerMinimumPartSize;
+                NSUInteger dataLength = i == partCount ? (NSUInteger)fileSize - ((i - 1) * _minimumPartSize) : _minimumPartSize;
                 
                 NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:[uploadRequest.body path]];
-                [fileHandle seekToFileOffset:(i - 1) * AWSS3TransferManagerMinimumPartSize];
+                [fileHandle seekToFileOffset:(i - 1) * _minimumPartSize];
                 NSData *partData = [fileHandle readDataOfLength:dataLength];
                 NSURL *tempURL = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]]];
                 [partData writeToURL:tempURL atomically:YES];
@@ -672,7 +688,7 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
         NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:[[self.body path] stringByResolvingSymlinksInPath]
                                                                                     error:nil];
         unsigned long long fileSize = [attributes fileSize];
-        if (fileSize > AWSS3TransferManagerMinimumPartSize) {
+        if (fileSize > _AWSS3TransferManagerMinimumPartSizeMutable) {
             //If using multipart upload, need to cancel current parts upload and send AbortMultiPartUpload Request.
             [self.currentUploadingPart cancel];
             
@@ -703,7 +719,7 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
             NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:[[self.body path] stringByResolvingSymlinksInPath]
                                                                                         error:nil];
             unsigned long long fileSize = [attributes fileSize];
-            if (fileSize > AWSS3TransferManagerMinimumPartSize) {
+            if (fileSize > _AWSS3TransferManagerMinimumPartSizeMutable) {
                 //If using multipart upload, need to check state flag and then pause the current parts upload and save the current status.
                 [self.currentUploadingPart pause];
             } else {

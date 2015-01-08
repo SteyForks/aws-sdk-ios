@@ -209,6 +209,8 @@ typedef NS_ENUM(NSInteger, AWSHTTPMethod) {
 @property (nonatomic, assign, readonly, getter = isCancelled) BOOL cancelled;
 @property (nonatomic, strong) NSURL *downloadingFileURL;
 
+@property (nonatomic, strong) NSString *contentType;
+
 - (BFTask *)cancel;
 - (BFTask *)pause;
 
