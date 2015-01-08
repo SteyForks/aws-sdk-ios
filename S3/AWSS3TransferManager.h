@@ -62,6 +62,10 @@ typedef void (^AWSS3TransferManagerResumeAllBlock) (AWSRequest *request);
 - (instancetype)initWithConfiguration:(AWSServiceConfiguration *)configuration
                            identifier:(NSString *)identifier;
 
+- (instancetype)initWithConfiguration:(AWSServiceConfiguration *)configuration
+                           identifier:(NSString *)identifier
+                            s3Service:(AWSS3 *)service;
+
 /**
  *  Schedules a new transfer to upload data to Amazon S3.
  *

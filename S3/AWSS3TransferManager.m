@@ -80,6 +80,19 @@ NSTimeInterval const AWSS3TransferManagerAgeLimitDefault = 0.0; // Keeps the dat
 }
 
 - (instancetype)initWithConfiguration:(AWSServiceConfiguration *)configuration
+                           identifier:(NSString *)identifier
+                            s3Service:(AWSS3 *)service
+{
+    if (self = [self initWithConfiguration:configuration
+                                 cacheName:[NSString stringWithFormat:@"%@.%@", AWSS3TransferManagerCacheName, identifier]]) {
+        _s3 = service;
+    }
+    
+    return self;
+}
+
+
+- (instancetype)initWithConfiguration:(AWSServiceConfiguration *)configuration
                             cacheName:(NSString *)cacheName {
     if (self = [super init]) {
         _s3 = [[AWSS3 alloc] initWithConfiguration:configuration];
