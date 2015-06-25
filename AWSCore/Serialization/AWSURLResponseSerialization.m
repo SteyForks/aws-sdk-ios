@@ -321,6 +321,11 @@ static NSDictionary *errorCodeDictionary = nil;
             }
         }
     }
+    
+    if (response.statusCode >= 400 && !resultDic[@"Error"]) {
+        *error = [NSError errorWithDomain:@"com.aws.http" code:response.statusCode userInfo:nil];        
+    }
+    
     return resultDic;
 }
 
