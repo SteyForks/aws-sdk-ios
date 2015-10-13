@@ -1,6 +1,6 @@
 source 'https://github.com/CocoaPods/Specs.git'
 
-pod 'Bolts', '~> 1.1.0'
+pod 'Bolts', '~> 1.1'
 pod 'Mantle', '~> 1.4'
 pod 'TMCache', '~> 1.2.1'
 pod 'XMLDictionary', '~> 1.4'
